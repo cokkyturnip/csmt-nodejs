@@ -1,0 +1,52 @@
+{
+  "name": "csmt",
+  "version": "1.0.0",
+  "description": "Creatio Simple Migration Toolkit — CLI to migrate spreadsheet (CSV/XLSX) data to and from Creatio through OData 4",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "csmt": "./bin/csmt.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "README.bilingual.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"try { fs.chmodSync('bin/csmt.js', 0o755); } catch {}\"",
+    "pretest": "npm run build",
+    "prepublishOnly": "npm run build && npm test",
+    "start": "tsx bin/csmt.ts",
+    "test": "tsx --test --test-timeout=30000 tests/**/*.test.ts"
+  },
+  "keywords": [
+    "creatio",
+    "odata4",
+    "csv",
+    "xlsx",
+    "migration",
+    "import",
+    "export",
+    "etl"
+  ],
+  "author": "Cokky Turnip",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.3",
+    "csv-parse": "^6.1.0",
+    "csv-stringify": "^6.6.0",
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
