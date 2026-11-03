@@ -1,5 +1,5 @@
 {
-  "name": "csmt",
+  "name": "csmt-nodejs",
   "version": "1.0.0",
   "description": "Creatio Simple Migration Toolkit — CLI to migrate spreadsheet (CSV/XLSX) data to and from Creatio through OData 4",
   "type": "module",
