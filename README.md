@@ -1,8 +1,9 @@
 # CSMT (Node.js) — Creatio Simple Migration Toolkit
 
-[![CI Tests](https://img.shields.io/badge/tests-42%20passed-brightgreen.svg)](file:///Users/cokkyturnip/creatio-csv-import-nodejs/tests)
-[![Node.js Version](https://img.shields.io/badge/node-≥%2020.0.0-blue.svg)](file:///Users/cokkyturnip/creatio-csv-import-nodejs/package.json)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](file:///Users/cokkyturnip/creatio-csv-import-nodejs/package.json)
+[![npm version](https://img.shields.io/npm/v/csmt-nodejs.svg?color=cb3837)](https://www.npmjs.com/package/csmt-nodejs)
+[![CI Tests](https://img.shields.io/badge/tests-42%20passed-brightgreen.svg)](https://github.com/cokkyturnip/csmt-nodejs/tree/main/tests)
+[![Node.js Version](https://img.shields.io/badge/node-≥%2020.0.0-blue.svg)](https://github.com/cokkyturnip/csmt-nodejs/blob/main/package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/cokkyturnip/csmt-nodejs/blob/main/LICENSE)
 
 > **Navigasi Bahasa / Language Navigation:**  
 > 🇮🇩 [Bahasa Indonesia](#-bahasa-indonesia) | 🇬🇧 [English](#-english)  
@@ -73,19 +74,33 @@ CSMT dijalankan **di dalam perimeter keamanan klien** (laptop internal atau VM p
 
 ---
 
-### Instalasi & Build
+### Instalasi & Pemakaian
 
+#### Opsi 1: Tanpa Instalasi (Rekomendasi via `npx`)
+Anda dapat langsung mengeksekusi toolkit ini tanpa perlu mengunduh repositori:
 ```bash
-git clone https://github.com/cokkyturnip/creatio-csv-import-nodejs.git
-cd creatio-csv-import-nodejs
+npx csmt-nodejs wizard
+```
 
-# Pasang dependensi
+#### Opsi 2: Pasang Global (CLI Standar)
+Pasang secara global untuk mendapatkan perintah `csmt` langsung di terminal Anda:
+```bash
+npm install -g csmt-nodejs
+csmt --help
+```
+
+#### Opsi 3: Pasang sebagai Library Proyek
+Gunakan modul migration toolkit langsung di dalam aplikasi TypeScript / JavaScript Anda:
+```bash
+npm install csmt-nodejs
+```
+
+#### Opsi 4: Kloning Repositori (Bagi Developer / Kontributor)
+```bash
+git clone https://github.com/cokkyturnip/csmt-nodejs.git
+cd csmt-nodejs
 npm install
-
-# Kompilasi TypeScript ke JavaScript (dist/)
 npm run build
-
-# Menjalankan seluruh test suite otomatis (42 tes)
 npm test
 ```
 
@@ -95,36 +110,36 @@ npm test
 
 ```bash
 # 1. Konfigurasi interaktif (menulis file .env dengan izin 0600)
-npx tsx bin/csmt.ts wizard
+npx csmt-nodejs wizard
 
 # 2. Uji koneksi, autentikasi, dan hak akses entitas
-npx tsx bin/csmt.ts check --entity Contact
+npx csmt-nodejs check --entity Contact
 
 # 3. Inspeksi skema entitas Creatio dari metadata OData
-npx tsx bin/csmt.ts schema --entity Contact
+npx csmt-nodejs schema --entity Contact
 
 # 4. Generate kerangka file mapping awal dari header CSV
-npx tsx bin/csmt.ts init-mapping --csv data.csv --entity Contact --key Email --out mapping.json
+npx csmt-nodejs init-mapping --csv data.csv --entity Contact --key Email --out mapping.json
 
 # 5. Uji simulasi (Dry Run) — memvalidasi pemetaan tanpa menulis ke Creatio
-npx tsx bin/csmt.ts import --csv data.csv --mapping mapping.json --dry-run --validate-fields
+npx csmt-nodejs import --csv data.csv --mapping mapping.json --dry-run --validate-fields
 
 # 6. Eksekusi impor aktual (mode upsert dengan pengelompokan batch 50 baris)
-npx tsx bin/csmt.ts import --csv data.csv --mapping mapping.json --mode upsert --batch-size 50
+npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --batch-size 50
 
 # 7. Jika koneksi terputus di tengah jalan, lanjutkan secara aman:
-npx tsx bin/csmt.ts import --csv data.csv --mapping mapping.json --mode upsert --resume
+npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --resume
 ```
 
 #### Contoh Ekspor Data
 
 ```bash
 # Ekspor rekaman ke CSV dengan ekspansi GUID lookup menjadi nama teks (default BOM UTF-8)
-npx tsx bin/csmt.ts export --entity Contact --out contacts.csv \
+npx csmt-nodejs export --entity Contact --out contacts.csv \
     --select Name,Email,CountryId --expand-lookups CountryId=Country.Name
 
 # Ekspor rekaman ke Excel XLSX dengan filter tanggal dan pengurutan
-npx tsx bin/csmt.ts export --entity Contact --out contacts.xlsx \
+npx csmt-nodejs export --entity Contact --out contacts.xlsx \
     --filter "CreatedOn ge 2026-01-01" --orderby "CreatedOn desc"
 ```
 
@@ -203,7 +218,7 @@ CSMT executes **entirely inside the client's trusted perimeter** (a secure works
 ### Installation & Build
 
 ```bash
-git clone https://github.com/cokkyturnip/creatio-csv-import-nodejs.git
+git clone https://github.com/cokkyturnip/csmt-nodejs.git
 cd creatio-csv-import-nodejs
 
 # Install dependencies
@@ -222,36 +237,36 @@ npm test
 
 ```bash
 # 1. Interactive configuration wizard (creates .env with 0600 file permissions)
-npx tsx bin/csmt.ts wizard
+npx csmt-nodejs wizard
 
 # 2. Check connection, credentials, and entity access permissions
-npx tsx bin/csmt.ts check --entity Contact
+npx csmt-nodejs check --entity Contact
 
 # 3. Inspect target entity EDM schema directly from OData $metadata
-npx tsx bin/csmt.ts schema --entity Contact
+npx csmt-nodejs schema --entity Contact
 
 # 4. Generate an initial mapping template from source file headers
-npx tsx bin/csmt.ts init-mapping --csv data.csv --entity Contact --key Email --out mapping.json
+npx csmt-nodejs init-mapping --csv data.csv --entity Contact --key Email --out mapping.json
 
 # 5. Dry-run simulation — validates mapping and data types without writing to Creatio
-npx tsx bin/csmt.ts import --csv data.csv --mapping mapping.json --dry-run --validate-fields
+npx csmt-nodejs import --csv data.csv --mapping mapping.json --dry-run --validate-fields
 
 # 6. Execute actual import in upsert mode with batch chunks of 50 records
-npx tsx bin/csmt.ts import --csv data.csv --mapping mapping.json --mode upsert --batch-size 50
+npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --batch-size 50
 
 # 7. If interrupted, resume seamlessly without duplicating processed rows
-npx tsx bin/csmt.ts import --csv data.csv --mapping mapping.json --mode upsert --resume
+npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --resume
 ```
 
 #### Export Examples
 
 ```bash
 # Export records to CSV with UTF-8 BOM, resolving CountryId lookup GUIDs to Country names
-npx tsx bin/csmt.ts export --entity Contact --out contacts.csv \
+npx csmt-nodejs export --entity Contact --out contacts.csv \
     --select Name,Email,CountryId --expand-lookups CountryId=Country.Name
 
 # Export records to Excel XLSX with custom OData filters and ordering
-npx tsx bin/csmt.ts export --entity Contact --out contacts.xlsx \
+npx csmt-nodejs export --entity Contact --out contacts.xlsx \
     --filter "CreatedOn ge 2026-01-01" --orderby "CreatedOn desc"
 ```
 
