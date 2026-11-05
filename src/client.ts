@@ -536,6 +536,11 @@ export class ODataClient {
     return parseCsdlEntityFields(metadata, this.requireEntity(entity));
   }
 
+  async entityFieldDetails(entity: string): Promise<CsdlFieldDetail[]> {
+    const metadata = await this.fetchMetadata();
+    return parseCsdlFieldDetails(metadata, this.requireEntity(entity));
+  }
+
   async serviceDocument(): Promise<Record<string, any>> {
     const res = await this.request("GET", "", { expected: [200] });
     return res.json && typeof res.json === "object" ? res.json : {};
@@ -566,7 +571,20 @@ export class ODataClient {
   }
 }
 
-export function parseCsdlEntityFields(xmlText: string, entitySet: string): Record<string, string> {
+export interface CsdlFieldDetail {
+  name: string;
+  type: string;
+  nullable: boolean;
+  maxLength?: number;
+  key: boolean;
+  lookup?: { navigation: string; entity: string };
+}
+
+function toArray<T>(value: any): T[] {
+  return Array.isArray(value) ? value : [value].filter(Boolean) as T[];
+}
+
+function buildCsdlIndex(xmlText: string): { entityTypes: Record<string, any>; entitySets: Record<string, string> } {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "",
@@ -608,6 +626,10 @@ export function parseCsdlEntityFields(xmlText: string, entitySet: string): Recor
     }
   }
 
+  return { entityTypes, entitySets };
+}
+
+function resolveEntityTypeName(entityTypes: Record<string, any>, entitySets: Record<string, string>, entitySet: string): string {
   let typeName = entitySets[entitySet];
   if (!typeName && entityTypes[entitySet]) {
     typeName = entitySet;
@@ -618,8 +640,14 @@ export function parseCsdlEntityFields(xmlText: string, entitySet: string): Recor
       `Entity set ${JSON.stringify(entitySet)} was not found in $metadata (known: ${Object.keys(entityTypes).sort().slice(0, 15).join(", ")})`
     );
   }
+  return typeName;
+}
 
-  const fields: Record<string, string> = {};
+export function parseCsdlFieldDetails(xmlText: string, entitySet: string): CsdlFieldDetail[] {
+  const { entityTypes, entitySets } = buildCsdlIndex(xmlText);
+  const typeName = resolveEntityTypeName(entityTypes, entitySets, entitySet);
+
+  const details = new Map<string, CsdlFieldDetail>();
   const visited = new Set<string>();
 
   function collect(currentType: string, depth = 0): void {
@@ -627,11 +655,40 @@ export function parseCsdlEntityFields(xmlText: string, entitySet: string): Recor
     visited.add(currentType);
 
     const typeDef = entityTypes[currentType];
-    const props = Array.isArray(typeDef.Property) ? typeDef.Property : [typeDef.Property].filter(Boolean);
-    for (const p of props) {
-      if (p?.Name) {
-        fields[p.Name] = p.Type || "";
+
+    const navTargets = new Map<string, string>();
+    for (const nav of toArray<any>(typeDef.NavigationProperty)) {
+      const navType = String(nav?.Type || "");
+      if (!nav?.Name || navType.startsWith("Collection(")) continue;
+      navTargets.set(String(nav.Name), navType.split(".").pop() || "");
+    }
+
+    const keyNames = new Set<string>(toArray<any>(typeDef.Key?.PropertyRef).map((r) => String(r?.Name)));
+
+    for (const p of toArray<any>(typeDef.Property)) {
+      if (!p?.Name) continue;
+      const name = String(p.Name);
+      if (details.has(name)) continue;
+
+      const edmType = String(p.Type || "");
+      const detail: CsdlFieldDetail = {
+        name,
+        type: edmType,
+        nullable: p.Nullable !== "false",
+        maxLength: p.MaxLength !== undefined ? Number(p.MaxLength) : undefined,
+        key: keyNames.has(name),
+      };
+
+      if (edmType === "Edm.Guid") {
+        const direct = navTargets.get(name);
+        const stripped = name.endsWith("Id") ? navTargets.get(name.slice(0, -2)) : undefined;
+        const target = direct ?? stripped;
+        if (target) {
+          detail.lookup = { navigation: direct ? name : name.slice(0, -2), entity: target };
+        }
       }
+
+      details.set(name, detail);
     }
 
     const base = typeDef.BaseType;
@@ -644,5 +701,13 @@ export function parseCsdlEntityFields(xmlText: string, entitySet: string): Recor
   }
 
   collect(typeName);
+  return Array.from(details.values());
+}
+
+export function parseCsdlEntityFields(xmlText: string, entitySet: string): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const detail of parseCsdlFieldDetails(xmlText, entitySet)) {
+    fields[detail.name] = detail.type;
+  }
   return fields;
 }

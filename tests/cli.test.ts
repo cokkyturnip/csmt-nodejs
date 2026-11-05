@@ -206,4 +206,12 @@ describe("CLI end-to-end commands", () => {
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
+
+  it("reports the version declared in package.json", async () => {
+    const pkg = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
+      version: string;
+    };
+    const cli = buildCli();
+    assert.equal(cli.version(), pkg.version);
+  });
 });

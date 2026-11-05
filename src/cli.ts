@@ -22,6 +22,13 @@ import { Mapper, Mapping, buildIdentityMapping } from "./mapping.js";
 import { ImportMode, ImportPipeline, PipelineOptions } from "./pipeline.js";
 import { ReportWriter, Summary } from "./report.js";
 import { openSource } from "./tabular.js";
+import {
+  buildTemplateColumns,
+  buildTemplateMapping,
+  templateFormatFor,
+  writeCsvTemplate,
+  writeXlsxTemplate,
+} from "./template.js";
 import { configureLogger, getLogger } from "./logger.js";
 
 export function buildSettingsFromArgs(options: Record<string, any>): Settings {
@@ -101,12 +108,22 @@ function addConnectionOptions(cmd: Command): Command {
     .option("--quiet", "Suppress log output except errors");
 }
 
+function packageVersion(): string {
+  try {
+    const pkgUrl = new URL("../package.json", import.meta.url);
+    const pkg = JSON.parse(fs.readFileSync(pkgUrl, "utf-8")) as { version?: string };
+    return pkg.version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
 export function buildCli(): Command {
   const program = new Command();
   program
     .name("csmt")
     .description("Migrate spreadsheet (CSV/XLSX) data to and from Creatio through the OData 4 web service.")
-    .version("1.0.0");
+    .version(packageVersion());
 
   program.hook("preAction", (thisCommand, actionCommand) => {
     const opts = actionCommand.opts();
@@ -180,6 +197,61 @@ export function buildCli(): Command {
           console.log(`Entity set: ${opts.entity} (${fieldNames.length} fields)`);
           for (const name of fieldNames) {
             console.log(`  ${name.padEnd(width)}  ${fields[name]}`);
+          }
+        } finally {
+          client.close();
+        }
+      } catch (err: unknown) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exitCode = 2;
+      }
+    });
+
+  // --- template ---
+  addConnectionOptions(program.command("template"))
+    .description("Generate a CSV/XLSX import template (and optional mapping) from $metadata")
+    .requiredOption("--entity <entity>", "Entity set name")
+    .requiredOption("--out <file>", "Output file; the extension decides the format (.csv or .xlsx)")
+    .option("--with-mapping <file>", "Also write a starter mapping JSON")
+    .option("--key <keys>", "Comma separated key column(s) to store in the mapping")
+    .option("--sample", "Include one example row")
+    .option("--include-system", "Include system/read-only columns")
+    .option("--lookup-key <field>", "Lookup field the cell value is matched against", "Name")
+    .option("--delimiter <delim>", "CSV delimiter", ",")
+    .option("--no-bom", "Write CSV without a UTF-8 BOM")
+    .action(async (opts) => {
+      try {
+        const format = templateFormatFor(opts.out);
+        const settings = buildSettingsFromArgs(opts);
+        const client = new ODataClient(settings);
+        try {
+          const details = await client.entityFieldDetails(opts.entity);
+          const columns = buildTemplateColumns(details, {
+            includeSystem: Boolean(opts.includeSystem),
+            lookupKey: opts.lookupKey,
+          });
+          const outPath = path.resolve(opts.out);
+          if (format === "csv") {
+            writeCsvTemplate(outPath, columns, {
+              delimiter: opts.delimiter,
+              bom: opts.bom !== false,
+              sample: Boolean(opts.sample),
+            });
+          } else {
+            await writeXlsxTemplate(outPath, opts.entity, columns, { sample: Boolean(opts.sample) });
+          }
+          const lookups = columns.filter((c) => c.lookupEntity).length;
+          console.log(`Wrote ${format.toUpperCase()} template with ${columns.length} columns to ${outPath}`);
+          console.log(`  ${columns.length - lookups} scalar, ${lookups} lookup (matched by ${JSON.stringify(opts.lookupKey)})`);
+          if (opts.withMapping) {
+            const mappingPath = path.resolve(opts.withMapping);
+            const document = buildTemplateMapping(columns, {
+              entity: opts.entity,
+              keyColumns: parseKeys(opts.key),
+            });
+            fs.mkdirSync(path.dirname(mappingPath), { recursive: true });
+            fs.writeFileSync(mappingPath, JSON.stringify(document, null, 2), "utf-8");
+            console.log(`Wrote starter mapping to ${mappingPath}`);
           }
         } finally {
           client.close();
