@@ -1,7 +1,7 @@
 # CSMT (Node.js) — Creatio Simple Migration Toolkit
 
 [![npm version](https://img.shields.io/npm/v/csmt-nodejs.svg?color=cb3837)](https://www.npmjs.com/package/csmt-nodejs)
-[![CI Tests](https://img.shields.io/badge/tests-42%20passed-brightgreen.svg)](https://github.com/cokkyturnip/csmt-nodejs/tree/main/tests)
+[![CI Tests](https://img.shields.io/badge/tests-57%20passed-brightgreen.svg)](https://github.com/cokkyturnip/csmt-nodejs/tree/main/tests)
 [![Node.js Version](https://img.shields.io/badge/node-≥%2020.0.0-blue.svg)](https://github.com/cokkyturnip/csmt-nodejs/blob/main/package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/cokkyturnip/csmt-nodejs/blob/main/LICENSE)
 
@@ -33,10 +33,10 @@ Toolkit CLI dan library Node.js / TypeScript berkinerja tinggi untuk memindahkan
 
 | Informasi | Spesifikasi |
 |---|---|
-| **Versi** | 1.0.0 |
+| **Versi** | 1.1.0 |
 | **Kebutuhan Runtime** | Node.js ≥ 20.0.0 (Modern ESM, TypeScript 5.x) |
 | **Dependensi Inti** | `commander`, `csv-parse`, `csv-stringify`, `exceljs`, `fast-xml-parser` |
-| **Status Pengujian** | 42 unit & integration tests lulus (0 fail, 0 hang) di 3 zona waktu |
+| **Status Pengujian** | 57 unit & integration tests lulus (0 fail, 0 hang) di 3 zona waktu |
 | **Versi Python** | Versi asli Python tersedia di [creatio-simple-migration-toolkit](https://github.com/cokkyturnip/creatio-simple-migration-toolkit) |
 | **Lisensi** | MIT |
 
@@ -131,6 +131,26 @@ npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --bat
 npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --resume
 ```
 
+#### Contoh Membuat Template Impor
+
+```bash
+# Template CSV berisi header seluruh kolom yang bisa ditulis, sekaligus
+# mapping.json siap pakai (kolom lookup diisi nama rekaman, bukan GUID)
+npx csmt-nodejs template --entity Contact --out contact-template.csv \
+    --with-mapping mapping.json --key Email --sample
+
+# Template Excel: dua sheet ("Contact" untuk data, "schema" untuk tipe kolom)
+npx csmt-nodejs template --entity Contact --out contact-template.xlsx --sample
+```
+
+Kolom lookup memakai nama navigasi tanpa akhiran `Id` — `Owner`, `Account`, `Type` — dan diisi label/nama rekaman. Mapping yang dihasilkan menerjemahkannya ke properti OData yang benar:
+
+```json
+"Owner": { "type": "lookup", "target": "OwnerId", "lookup": { "entity": "Contact", "key": "Name" } }
+```
+
+Kolom sistem (`Id`, `CreatedOn`, `CreatedById`, `ModifiedOn`, `ModifiedById`, `ProcessListeners`) dan kolom `Edm.Stream` tidak disertakan; gunakan `--include-system` bila kolom sistem tetap dibutuhkan. Format keluaran ditentukan dari ekstensi `--out` (`.csv` atau `.xlsx`), dan `--lookup-key` mengganti field pencocokan lookup dari `Name` ke field lain. Pada output XLSX, sheet kedua bernama `schema` memuat `header`, `target`, `edm_type`, `nullable`, `max_length`, dan `lookup_entity`.
+
 #### Contoh Ekspor Data
 
 ```bash
@@ -152,6 +172,7 @@ npx csmt-nodejs export --entity Contact --out contacts.xlsx \
 | `wizard` | Asisten konfigurasi interaktif untuk menghasilkan `.env` (URL, autentikasi, kredensial). |
 | `check` | Memverifikasi ketersediaan endpoint OData, validitas token/kredensial, dan izin entitas. |
 | `schema` | Menampilkan seluruh field dan tipe data EDM dari entitas berdasarkan `$metadata`. |
+| `template` | Menghasilkan template impor CSV/XLSX (plus `mapping.json` opsional) dari `$metadata`. |
 | `init-mapping` | Membaca header berkas CSV/XLSX dan menghasilkan kerangka `mapping.json`. |
 | `import` | Memproses impor data ke Creatio (`create`, `update`, `upsert`, batch, resume, audit). |
 | `export` | Mengunduh rekaman dari Creatio ke format CSV atau XLSX. |
@@ -187,10 +208,10 @@ High-performance Node.js / TypeScript CLI toolkit and library to migrate spreads
 
 | Detail | Specification |
 |---|---|
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Runtime Requirements** | Node.js ≥ 20.0.0 (Modern ESM, TypeScript 5.x) |
 | **Core Dependencies** | `commander`, `csv-parse`, `csv-stringify`, `exceljs`, `fast-xml-parser` |
-| **Test Verification** | 42 automated unit & integration tests passing (0 failures, 0 hangs) across 3 timezones |
+| **Test Verification** | 57 automated unit & integration tests passing (0 failures, 0 hangs) across 3 timezones |
 | **Python Version** | Original Python implementation available at [creatio-simple-migration-toolkit](https://github.com/cokkyturnip/creatio-simple-migration-toolkit) |
 | **License** | MIT |
 
@@ -227,7 +248,7 @@ npm install
 # Compile TypeScript to JavaScript (dist/)
 npm run build
 
-# Run all 42 automated tests
+# Run all 57 automated tests
 npm test
 ```
 
@@ -258,6 +279,25 @@ npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --bat
 npx csmt-nodejs import --csv data.csv --mapping mapping.json --mode upsert --resume
 ```
 
+#### Generating an Import Template
+
+```bash
+# CSV template with a header for every writable column plus a ready-to-use mapping
+npx csmt-nodejs template --entity Contact --out contact-template.csv \
+    --with-mapping mapping.json --key Email --sample
+
+# Excel template: two sheets ("Contact" for data, "schema" for column types)
+npx csmt-nodejs template --entity Contact --out contact-template.xlsx --sample
+```
+
+Lookup columns use the navigation name without the `Id` suffix — `Owner`, `Account`, `Type` — and hold the record label/name. The generated mapping resolves them against the real OData property:
+
+```json
+"Owner": { "type": "lookup", "target": "OwnerId", "lookup": { "entity": "Contact", "key": "Name" } }
+```
+
+System columns (`Id`, `CreatedOn`, `CreatedById`, `ModifiedOn`, `ModifiedById`, `ProcessListeners`) and `Edm.Stream` columns are omitted; pass `--include-system` to keep the former. The output format follows the `--out` extension (`.csv` or `.xlsx`), and `--lookup-key` changes the lookup match field from `Name` to another field. In XLSX output the second sheet, `schema`, lists `header`, `target`, `edm_type`, `nullable`, `max_length`, and `lookup_entity`.
+
 #### Export Examples
 
 ```bash
@@ -279,6 +319,7 @@ npx csmt-nodejs export --entity Contact --out contacts.xlsx \
 | `wizard` | Interactive setup to configure credentials and generate `.env`. |
 | `check` | Verifies OData endpoint availability, authentication, and entity read access. |
 | `schema` | Inspects and lists all available entity attributes and EDM data types. |
+| `template` | Generates a CSV/XLSX import template (and optional `mapping.json`) from `$metadata`. |
 | `init-mapping` | Scaffolds a starter `mapping.json` from spreadsheet headers. |
 | `import` | Executes migration pipeline (`create`/`update`/`upsert`, batch, resume, audit). |
 | `export` | Extracts Creatio records to CSV or Excel with lookup resolution. |
