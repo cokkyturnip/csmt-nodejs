@@ -522,7 +522,12 @@ export class ODataClient {
   }
 
   async fetchMetadata(): Promise<string> {
-    const res = await this.request("GET", "$metadata", { expected: [200] });
+    // Creatio .NET Framework tidak mendukung JSON metadata dan menjawab 500
+    // ("The JSON metadata is not supported at this platform") bila Accept JSON.
+    const res = await this.request("GET", "$metadata", {
+      expected: [200],
+      headers: { Accept: "application/xml" },
+    });
     return res.text;
   }
 

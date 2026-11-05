@@ -596,5 +596,5 @@ export async function runWizard(
   } catch {}
 
   console.log(`\nConfig tersimpan di: ${outPath}`);
-  console.log(`Lanjutkan dengan: npx csmt check --env-file ${outPath}`);
+  console.log(`Lanjutkan dengan: npx csmt-nodejs check --env-file ${outPath}`);
 }
